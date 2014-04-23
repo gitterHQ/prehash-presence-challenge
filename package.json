@@ -25,7 +25,8 @@
     "mocha": "^1.18.2"
   },
   "dependencies": {
-    "node-redis": "^0.1.7",
-    "redis-scripto": "^0.1.2"
+    "redis-scripto": "^0.1.2",
+    "async": "^0.7.0",
+    "redis": "^0.10.1"
   }
 }
