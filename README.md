@@ -43,5 +43,14 @@ One of the problems that online collaboration platforms have to solve is that of
 	});
 	```
 
-11. For scalability and failover, the presence engine operates in a clustered environment. For this reason, all shared state is kept in a Redis database store. We would also recommend using atomic operations to ensure consistency across the cluster, using either Lua scripting, CAS or MULTI-EXEC blocks.
+--------------------------
 
+##### Tips and suggestions
+
+1. For scalability and failover, the presence engine operates in a clustered environment. For this reason, all shared state is kept in a Redis database store. 
+
+2. Due to the highly concurrent nature of the cluster, we recommend using atomic operations to ensure consistency. We recommend using Redis Lua scripting, CAS or MULTI-EXEC blocks.
+
+3. If you choose to use redis lua scripting, the [redis-scripto](https://www.npmjs.org/package/redis-scripto) node module has been included in the package.
+
+4. Sometimes strange things happen: for example multiple connect or disconnect events for the same client can occassionally occur. Your implementation should handle these cases in a tidy manner.
