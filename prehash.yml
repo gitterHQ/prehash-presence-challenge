@@ -1,20 +1,17 @@
 environment: node-0.10.0
 
 readonly:
-  - spec/integration_spec.rb
-  - data/
-  - Gemfile
+  - spec/presence-test.js
+  - package.json
 
 hide:
-  - vendor/
-  - .bundle/
+  - node_modules/
   - .gitignore
   - metadata.txt
   - init.sh
-  - README.html
-  - generate_leases.rb
 
-start: spec/integration_spec.rb
+start: lib/presence.js
 
 highlighted_files:
-  - /lib/credit_scoring.rb
+  - lib/presence.js
+  - spec/presence-test.js

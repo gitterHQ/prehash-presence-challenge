@@ -8,6 +8,11 @@ var async = require('async');
 
 describe('presence engine', function() {
   describe('simple cases', function() {
+
+    /**
+     * Using a single connection, check that the correct event is triggered when
+     * a user comes online
+     */
     it('should handle a single connect', function(done) {
 
       var presence = new Presence();
@@ -16,19 +21,25 @@ describe('presence engine', function() {
       var TEST_username = 'moo';
 
       var transitionTriggered = 0;
-      presence.on('transition', function(username) {
-        assert.strictEqual(++transitionTriggered, 1);
-        assert.strictEqual(username, TEST_username);
+      presence.on('transition', function(username, status) {
+        /** Check that only one transition happens */
+        assert.strictEqual(++transitionTriggered, 1, 'Too many transition events');
+        assert.strictEqual(username, TEST_username, 'Incorrect user');
+        assert(status, 'User should be online');
       });
 
       presence.connected(TEST_clientId, TEST_username, function(err) {
         if(err) return done(err);
-        assert.strictEqual(transitionTriggered, 1);
+        assert.strictEqual(transitionTriggered, 1, 'Incorrect number of transition events');
         done();
       });
 
     });
 
+    /**
+     * Using a single connection, check that the transition event occurs when
+     * the user goes online and offline
+     */
     it('should emit two presence events for a connect-disconnect', function(done) {
       var presence = new Presence();
 
@@ -37,16 +48,16 @@ describe('presence engine', function() {
 
       var transitionTriggered = 0;
       presence.on('transition', function(username, status) {
-        assert.strictEqual(username, TEST_username);
+        assert.strictEqual(username, TEST_username, 'Incorrect user');
         switch(transitionTriggered++) {
           case 0:
-            assert.equal(status, true);
+            assert(status, 'Expect user to be going online');
             break;
           case 1:
-            assert.equal(status, false);
+            assert(!status, 'Expect user to be going offline');
             break;
           default:
-            assert(false);
+            assert(false, 'Too many transition events');
         }
 
       });
@@ -54,12 +65,12 @@ describe('presence engine', function() {
       presence.connected(TEST_clientId, TEST_username, function(err) {
         if(err) return done(err);
 
-        assert.strictEqual(transitionTriggered, 1, 'Expected event to be triggered');
+        assert.strictEqual(transitionTriggered, 1, 'Incorrect number of transition events');
 
         presence.disconnected(TEST_clientId, function() {
           if(err) return done(err);
 
-          assert.strictEqual(transitionTriggered, 2, 'Expected event to be triggered');
+          assert.strictEqual(transitionTriggered, 2, 'Incorrect number of transition events');
 
           done();
         });
@@ -68,6 +79,9 @@ describe('presence engine', function() {
 
     });
 
+    /**
+     * Test that the query method works correctly
+     */
     it('should return the correct results for a query', function(done) {
       var presence = new Presence();
 
@@ -80,8 +94,8 @@ describe('presence engine', function() {
         presence.query(['rover', 'jimmy'], function(err, statii) {
           if(err) return done(err);
 
-          assert.equal(statii['rover'], true);
-          assert.equal(statii['jimmy'], false);
+          assert(statii['rover'], 'User should be online');
+          assert(!statii['jimmy'], 'User should be offline');
 
           presence.disconnected(TEST_clientId, function(err) {
             if(err) return done(err);
@@ -89,8 +103,8 @@ describe('presence engine', function() {
             presence.query(['rover', 'jimmy'], function(err, statii) {
               if(err) return done(err);
 
-              assert(!statii['rover'], false);
-              assert(!statii['jimmy'], false);
+              assert(!statii['rover'], 'User should be offline');
+              assert(!statii['jimmy'], 'User should be offline');
 
               done();
             });
@@ -104,7 +118,15 @@ describe('presence engine', function() {
     });
   });
 
+  /**
+   * These tests are for a single user with multiple devices
+   */
   describe('one user connected on multiple devices', function() {
+
+    /**
+     * Check that we only get one online event when a user
+     * connects using multiple devices
+     */
     it('should handle a single user connecting on multiple devices', function(done) {
 
       var presence = new Presence();
@@ -115,8 +137,8 @@ describe('presence engine', function() {
 
       var transitionTriggered = 0;
       presence.on('transition', function(username) {
-        assert.strictEqual(++transitionTriggered, 1);
-        assert.strictEqual(username, TEST_username);
+        assert.strictEqual(++transitionTriggered, 1, 'Too many transition events');
+        assert.strictEqual(username, TEST_username, 'Incorrect user');
       });
 
       async.series([
@@ -124,7 +146,7 @@ describe('presence engine', function() {
           presence.query([TEST_username], function(err, statii) {
             if(err) return cb(err);
 
-            assert(!statii[TEST_username]);
+            assert(!statii[TEST_username], 'User should be offline');
 
             cb();
           });
@@ -133,7 +155,7 @@ describe('presence engine', function() {
           presence.connected(TEST_clientId1, TEST_username, function(err) {
             if(err) return cb(err);
 
-            assert.strictEqual(transitionTriggered, 1);
+            assert.strictEqual(transitionTriggered, 1, 'Incorrect number of transition events');
             cb();
           });
         },
@@ -141,7 +163,7 @@ describe('presence engine', function() {
           presence.query([TEST_username], function(err, statii) {
             if(err) return cb(err);
 
-            assert(statii[TEST_username]);
+            assert(statii[TEST_username], 'User should be online');
 
             cb();
           });
@@ -150,7 +172,7 @@ describe('presence engine', function() {
           presence.connected(TEST_clientId2, TEST_username, function(err) {
             if(err) return cb(err);
 
-            assert.strictEqual(transitionTriggered, 1);
+            assert.strictEqual(transitionTriggered, 1, 'Incorrect number of transition events');
             cb();
           });
         },
@@ -158,7 +180,7 @@ describe('presence engine', function() {
           presence.query([TEST_username], function(err, statii) {
             if(err) return cb(err);
 
-            assert(statii[TEST_username]);
+            assert(statii[TEST_username], 'User should be online');
 
             cb();
           });
@@ -166,12 +188,16 @@ describe('presence engine', function() {
       ], function(err) {
         if(err) return done(err);
 
-        assert.equal(transitionTriggered, 1);
+        assert.equal(transitionTriggered, 1, 'Incorrect number of transition events');
         done();
       });
 
     });
 
+    /**
+     * User connects with two devices, then disconnects both devices.
+     * Check that we get one online event, one offline event.
+     */
     it('should handle a single user connecting and disconnecting on multiple devices', function(done) {
       var presence = new Presence();
 
@@ -181,16 +207,16 @@ describe('presence engine', function() {
 
       var transitionTriggered = 0;
       presence.on('transition', function(username, status) {
-        assert.strictEqual(username, TEST_username);
+        assert.strictEqual(username, TEST_username, 'Incorrect user');
         switch(transitionTriggered++) {
           case 0:
-            assert.equal(status, true);
+            assert(status, 'Expected user to be going online');
             break;
           case 1:
-            assert.equal(status, false);
+            assert(!status, 'Expected user to be going offline');
             break;
           default:
-            assert(false);
+            assert(false, 'Incorrect number of transition events');
         }
       });
 
@@ -199,7 +225,7 @@ describe('presence engine', function() {
           presence.query([TEST_username], function(err, statii) {
             if(err) return cb(err);
 
-            assert(!statii[TEST_username]);
+            assert(!statii[TEST_username], 'User should be offline');
 
             cb();
           });
@@ -208,7 +234,7 @@ describe('presence engine', function() {
           presence.connected(TEST_clientId1, TEST_username, function(err) {
             if(err) return cb(err);
 
-            assert.strictEqual(transitionTriggered, 1);
+            assert.strictEqual(transitionTriggered, 1, 'Incorrect number of transition events');
             cb();
           });
         },
@@ -216,7 +242,7 @@ describe('presence engine', function() {
           presence.query([TEST_username], function(err, statii) {
             if(err) return cb(err);
 
-            assert(statii[TEST_username]);
+            assert(statii[TEST_username], 'User should be online');
 
             cb();
           });
@@ -225,7 +251,7 @@ describe('presence engine', function() {
           presence.connected(TEST_clientId2, TEST_username, function(err) {
             if(err) return cb(err);
 
-            assert.strictEqual(transitionTriggered, 1);
+            assert.strictEqual(transitionTriggered, 1, 'Incorrect number of transition events');
             cb();
           });
         },
@@ -233,7 +259,7 @@ describe('presence engine', function() {
           presence.query([TEST_username], function(err, statii) {
             if(err) return cb(err);
 
-            assert(statii[TEST_username]);
+            assert(statii[TEST_username], 'User should be online');
 
             cb();
           });
@@ -242,7 +268,7 @@ describe('presence engine', function() {
           presence.disconnected(TEST_clientId1, function(err) {
             if(err) return cb(err);
 
-            assert.strictEqual(transitionTriggered, 1);
+            assert.strictEqual(transitionTriggered, 1, 'Incorrect number of transition events');
             cb();
           });
         },
@@ -250,7 +276,7 @@ describe('presence engine', function() {
           presence.query([TEST_username], function(err, statii) {
             if(err) return cb(err);
 
-            assert(statii[TEST_username]);
+            assert(statii[TEST_username], 'User should be online');
 
             cb();
           });
@@ -259,7 +285,7 @@ describe('presence engine', function() {
           presence.disconnected(TEST_clientId2, function(err) {
             if(err) return cb(err);
 
-            assert.strictEqual(transitionTriggered, 2, 'Expected second trigger event');
+            assert.strictEqual(transitionTriggered, 2, 'Incorrect number of transition events');
             cb();
           });
         },
@@ -267,7 +293,7 @@ describe('presence engine', function() {
           presence.query([TEST_username], function(err, statii) {
             if(err) return cb(err);
 
-            assert(!statii[TEST_username]);
+            assert(!statii[TEST_username], 'User should be offline');
 
             cb();
           });
@@ -276,7 +302,7 @@ describe('presence engine', function() {
       ], function(err) {
         if(err) return done(err);
 
-        assert.equal(transitionTriggered, 2);
+        assert.equal(transitionTriggered, 2, 'Incorrect number of transition events');
         done();
       });
 
@@ -284,7 +310,13 @@ describe('presence engine', function() {
 
   });
 
+  /**
+   * These tests attempt to find timing issues. They do things in parallel and check that
+   * the results are consistent.
+   */
   describe('timing cases', function() {
+
+    /* User connects and disconnects before the first call returns */
     it('should handle a fast connect/disconnect', function(done) {
       var presence = new Presence();
 
@@ -293,16 +325,16 @@ describe('presence engine', function() {
 
       var transitionTriggered = 0;
       presence.on('transition', function(username, status) {
-        assert.strictEqual(username, TEST_username);
+        assert.strictEqual(username, TEST_username, 'Incorrect user');
         switch(transitionTriggered++) {
           case 0:
-            assert.equal(status, true);
+            assert(status, 'User should be online');
             break;
           case 1:
-            assert.equal(status, false);
+            assert(!status, 'User should be offline');
             break;
           default:
-            assert(false);
+            assert(false, 'Too many transition events');
         }
 
       });
@@ -313,12 +345,15 @@ describe('presence engine', function() {
       ], function(err) {
         if(err) return done(err);
 
-        assert.equal(transitionTriggered, 2);
+        assert.equal(transitionTriggered, 2, 'Incorrect number of transition events');
         done();
       });
 
     });
 
+    /**
+     * Check that double-connect events don't mess things up
+     */
     it('should handle clients connecting twice in quick succession', function(done) {
       var presence = new Presence();
 
@@ -327,16 +362,16 @@ describe('presence engine', function() {
 
       var transitionTriggered = 0;
       presence.on('transition', function(username, status) {
-        assert.strictEqual(username, TEST_username);
+        assert.strictEqual(username, TEST_username, 'Incorrect user');
         switch(transitionTriggered++) {
           case 0:
-            assert.equal(status, true);
+            assert(status, 'User should be online');
             break;
           case 1:
-            assert.equal(status, false);
+            assert(!status, 'User should be offline');
             break;
           default:
-            assert(false);
+            assert(false, 'Too many transition events');
         }
 
       });
@@ -348,12 +383,15 @@ describe('presence engine', function() {
       ], function(err) {
         if(err) return done(err);
 
-        assert.equal(transitionTriggered, 2);
+        assert.equal(transitionTriggered, 2, 'Incorrect number of transition events');
         done();
       });
 
     });
 
+    /**
+     * Check that double-disconnect events don't mess things up
+     */
     it('should handle clients disconnecting twice in quick succession', function(done) {
       var presence = new Presence();
 
@@ -362,16 +400,16 @@ describe('presence engine', function() {
 
       var transitionTriggered = 0;
       presence.on('transition', function(username, status) {
-        assert.strictEqual(username, TEST_username);
+        assert.strictEqual(username, TEST_username, 'Incorrect user');
         switch(transitionTriggered++) {
           case 0:
-            assert.equal(status, true);
+            assert(status, 'User should be online');
             break;
           case 1:
-            assert.equal(status, false);
+            assert(!status, 'User should be offline');
             break;
           default:
-            assert(false);
+            assert(false, 'Too many transition events');
         }
 
       });
@@ -383,13 +421,16 @@ describe('presence engine', function() {
       ], function(err) {
         if(err) return done(err);
 
-        assert.equal(transitionTriggered, 2);
+        assert.equal(transitionTriggered, 2, 'Incorrect number of transition events');
         done();
       });
 
     });
 
-
+    /**
+     * User connects with 5 devices, almost concurrently. Then disconnects 5 devices.
+     * Make sure that everything is consistent.
+     */
     it('should handle a single user connecting and disconnecting on multiple devices concurrently', function(done) {
       var presence = new Presence();
 
@@ -398,16 +439,16 @@ describe('presence engine', function() {
 
       var transitionTriggered = 0;
       presence.on('transition', function(username, status) {
-        assert.strictEqual(username, TEST_username);
+        assert.strictEqual(username, TEST_username, 'Incorrect user');
         switch(transitionTriggered++) {
           case 0:
-            assert.equal(status, true);
+            assert(status, 'User should be online');
             break;
           case 1:
-            assert.equal(status, false);
+            assert(!status, 'User should be offline');
             break;
           default:
-            assert(false);
+            assert(false, 'Too many transition events');
         }
       });
 
@@ -418,7 +459,7 @@ describe('presence engine', function() {
           presence.query([TEST_username], function(err, statii) {
             if(err) return cb(err);
 
-            assert(!statii[TEST_username]);
+            assert(!statii[TEST_username], 'User should be offline');
 
             cb();
           });
@@ -429,7 +470,7 @@ describe('presence engine', function() {
           }), function(err) {
             if(err) return done(err);
 
-            assert.equal(transitionTriggered, 1);
+            assert.equal(transitionTriggered, 1, 'Incorrect number of transition events');
             cb();
           });
         },
@@ -437,7 +478,7 @@ describe('presence engine', function() {
           presence.query([TEST_username], function(err, statii) {
             if(err) return cb(err);
 
-            assert(statii[TEST_username]);
+            assert(statii[TEST_username], 'User should be online');
 
             cb();
           });
@@ -448,7 +489,7 @@ describe('presence engine', function() {
           }), function(err) {
             if(err) return done(err);
 
-            assert.equal(transitionTriggered, 2);
+            assert.equal(transitionTriggered, 2, 'Incorrect number of transition events');
             cb();
           });
         },
@@ -456,7 +497,7 @@ describe('presence engine', function() {
           presence.query([TEST_username], function(err, statii) {
             if(err) return cb(err);
 
-            assert(!statii[TEST_username]);
+            assert(!statii[TEST_username], 'User should be offline');
 
             cb();
           });
