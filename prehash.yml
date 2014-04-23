@@ -1,0 +1,20 @@
+environment: node-0.10.0
+
+readonly:
+  - spec/integration_spec.rb
+  - data/
+  - Gemfile
+
+hide:
+  - vendor/
+  - .bundle/
+  - .gitignore
+  - metadata.txt
+  - init.sh
+  - README.html
+  - generate_leases.rb
+
+start: spec/integration_spec.rb
+
+highlighted_files:
+  - /lib/credit_scoring.rb

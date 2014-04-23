@@ -1,0 +1,31 @@
+{
+  "name": "prehash-presence-challenge",
+  "version": "0.1.0",
+  "description": "Prehash Presence Challenge",
+  "main": "index.js",
+  "scripts": {
+    "test": "./node_modules/.bin/mocha -R spec spec/"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/gitterHQ/prehash-presence-challenge.git"
+  },
+  "keywords": [
+    "prehash",
+    "gitter",
+    "interview"
+  ],
+  "author": "Andrew Newdigate",
+  "license": "Private",
+  "bugs": {
+    "url": "https://github.com/gitterHQ/prehash-presence-challenge/issues"
+  },
+  "homepage": "https://github.com/gitterHQ/prehash-presence-challenge",
+  "devDependencies": {
+    "mocha": "^1.18.2"
+  },
+  "dependencies": {
+    "node-redis": "^0.1.7",
+    "redis-scripto": "^0.1.2"
+  }
+}
