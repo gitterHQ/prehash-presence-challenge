@@ -1,7 +1,6 @@
 environment: node-0.10.0
 
 readonly:
-  - spec/presence-test.js
   - package.json
 
 hide:
