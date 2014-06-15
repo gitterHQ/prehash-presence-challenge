@@ -4,7 +4,7 @@
   "description": "Prehash Presence Challenge",
   "main": "index.js",
   "scripts": {
-    "test": "./node_modules/.bin/mocha -R spec spec/"
+    "test": "mocha -R spec spec/"
   },
   "repository": {
     "type": "git",
